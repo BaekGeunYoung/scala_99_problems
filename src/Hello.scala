@@ -23,6 +23,17 @@ object Hello extends App {
       List('e', 'e', 'e', 'e'),
     )
   )
+  assert(
+    P13.encodeDirect(List('a', 'a', 'a', 'a', 'b', 'c', 'c', 'a', 'a', 'd', 'e', 'e', 'e', 'e')) ==
+    P10.encode(List('a', 'a', 'a', 'a', 'b', 'c', 'c', 'a', 'a', 'd', 'e', 'e', 'e', 'e'))
+  )
+  assert(P14.duplicate(list) == List(1, 1, 2, 2, 3, 3, 4, 4, 5, 5))
+  assert(P16.drop(3, List(1, 2, 3, 4, 5, 6, 7, 8, 9)) == List(1, 2, 4, 5, 7, 8))
+  assert(P17.split(3, list) == (List(1, 2, 3), List(4, 5)))
+  assert(P18.slice(2, 5, list) == list.slice(2, 5))
+  assert(P19.rotate(3, list) == List(4, 5, 1, 2, 3))
+  assert(P19.rotate(-3, list) == List(3, 4, 5, 1, 2))
+  assert(P20.removeAt(2, list) == (List(1, 2, 4, 5), 3))
 }
 
 object P01 {
@@ -200,4 +211,107 @@ object P11 {
 
 object P12 {
   def decode[A](ls: List[(Int, A)]): List[A] = ls.flatMap(e => List.fill(e._1)(e._2))
+}
+
+object P13 {
+  def encodeDirect[A](list: List[A]): List[(Int, A)] = {
+    if (list.isEmpty) List()
+    else {
+      val (packed, next) = list span { _ == list.head }
+      (packed.length, packed.head) :: encodeDirect(next)
+    }
+  }
+}
+
+object P14 {
+  def duplicate[A](list: List[A]): List[A] = list match {
+    case h :: tail => List(h, h) ::: duplicate(tail)
+    case _ => Nil
+  }
+}
+
+object P15 {
+  def duplicateN[A](n: Int, list: List[A]): List[A] = list match {
+    case h :: tail => List.fill(n)(h) ::: duplicateN(n, tail)
+    case _ => Nil
+  }
+
+  def duplicateNTailRec[A](n: Int, list: List[A]): List[A] = {
+    @scala.annotation.tailrec
+    def duplicateR(result: List[A], n: Int, curList: List[A]): List[A] = curList match {
+      case h :: tail => duplicateR(result ::: List.fill(n)(h), n, tail)
+      case _ => result
+    }
+
+    duplicateR(List(), n, list)
+  }
+}
+
+object P16 {
+  def drop[A](n: Int, list: List[A]): List[A] = {
+    @scala.annotation.tailrec
+    def dropR(result: List[A], curNum: Int, curList: List[A]): List[A] = (curNum, curList) match {
+      case (1, _ :: tail) => dropR(result, n, tail)
+      case (_, h :: tail) => dropR(result ::: List(h), curNum - 1, tail)
+      case _ => result
+    }
+
+    dropR(List(), n, list)
+  }
+}
+
+object P17 {
+  def split[A](firstLength: Int, list: List[A]): (List[A], List[A]) = {
+    @scala.annotation.tailrec
+    def splitR(curLength: Int, first: List[A], second: List[A]): (List[A], List[A]) = (curLength, second) match {
+      case (0, _) => (first, second)
+      case (_, h :: tail) => splitR(curLength - 1, first ::: List(h), tail)
+      case _ => throw new ArrayIndexOutOfBoundsException
+    }
+
+    splitR(firstLength, List(), list)
+  }
+}
+
+object P18 {
+  def slice[A](from: Int, to: Int, list: List[A]): List[A] = {
+    @scala.annotation.tailrec
+    def sliceR(curIdx: Int, from: Int, to: Int, result: List[A], curList: List[A]): List[A] = curList match {
+      case h :: tail =>
+        if (from <= curIdx && curIdx < to) sliceR(curIdx + 1, from, to, h :: result, tail)
+        else sliceR(curIdx + 1, from, to, result, tail)
+      case _ => result.reverse
+    }
+
+    sliceR(0, from, to, List(), list)
+  }
+
+  def sliceFunctional[A](from: Int, to: Int, list: List[A]): List[A] = list.drop(from).take(to - from)
+}
+
+object P19 {
+  def rotate[A](n: Int, list: List[A]): List[A] = {
+    @scala.annotation.tailrec
+    def rotateLeft(n: Int, list: List[A]): List[A] = (n, list) match {
+      case (_, Nil) => Nil
+      case (0, _) => list
+      case (_, h :: tail) => rotateLeft(n - 1, tail ::: List(h))
+    }
+
+    if (n >= 0) rotateLeft(n, list)
+    else rotateLeft(-n, list.reverse).reverse
+  }
+}
+
+object P20 {
+  def removeAt[A](n: Int, list: List[A]): (List[A], A) = {
+    @scala.annotation.tailrec
+    def removeR(curIdx: Int, list: List[A], result: List[A]): (List[A], A) = (curIdx, list) match {
+      case (0, h :: tail) => (result ::: tail, h)
+      case (_, h :: tail) => removeR(curIdx - 1, tail, result ::: List(h))
+      case _ => throw new ArrayIndexOutOfBoundsException
+    }
+
+    removeR(n, list, List())
+  }
 }
