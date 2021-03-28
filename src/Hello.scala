@@ -1,4 +1,7 @@
+import java.security.InvalidAlgorithmParameterException
 import java.util.NoSuchElementException
+
+import scala.util.Random
 
 object Hello extends App {
   val list = List(1, 2, 3, 4, 5)
@@ -34,6 +37,17 @@ object Hello extends App {
   assert(P19.rotate(3, list) == List(4, 5, 1, 2, 3))
   assert(P19.rotate(-3, list) == List(3, 4, 5, 1, 2))
   assert(P20.removeAt(2, list) == (List(1, 2, 4, 5), 3))
+  assert(P21.insertAt(10, 3, list) == List(1, 2, 3, 10, 4, 5))
+  assert(P22.range(4, 9) == List(4, 5, 6, 7, 8, 9))
+  println(P26.combinations(3, List(1, 2, 3, 4, 5)))
+  println(P27.group(List(1, 1, 3), List(1, 2, 3, 4, 5)))
+  println(
+    P28.lsortFreq(List(List('a, 'b, 'c), List('d, 'e), List('f, 'g, 'h), List('d, 'e), List('i, 'j, 'k, 'l), List('m, 'n), List('o)))
+  )
+//  assert(
+//    P28.lsortFreq(List(List('a, 'b, 'c), List('d, 'e), List('f, 'g, 'h), List('d, 'e), List('i, 'j, 'k, 'l), List('m, 'n), List('o)))
+//    == List(List('i, 'j, 'k, 'l), List('o), List('a, 'b, 'c), List('f, 'g, 'h), List('d, 'e), List('d, 'e), List('m, 'n))
+//  )
 }
 
 object P01 {
@@ -314,4 +328,89 @@ object P20 {
 
     removeR(n, list, List())
   }
+}
+
+object P21 {
+  def insertAt[A](a: A, idx: Int, list: List[A]): List[A] = {
+    @scala.annotation.tailrec
+    def insertR(curIdx: Int, curList: List[A], result: List[A]): List[A] = (curIdx, curList) match {
+      case (0, _) => result ::: List(a) ::: curList
+      case (_, h :: tail) => insertR(curIdx - 1, tail, result ::: List(h))
+      case _ => throw new ArrayIndexOutOfBoundsException
+    }
+
+    insertR(idx, list, List())
+  }
+}
+
+object P22 {
+  def range(from: Int, to: Int): List[Int] = {
+    @scala.annotation.tailrec
+    def rangeR(curr: Int, result: List[Int]): List[Int] = {
+      if (curr <= to) rangeR(curr + 1, curr :: result)
+      else result.reverse
+    }
+
+    rangeR(from, List())
+  }
+}
+
+object P23 {
+  def randomSelect[A](n: Int, list: List[A]): List[A] = {
+    @scala.annotation.tailrec
+    def randomSelectR(n: Int, curList: List[A], result: List[A]): List[A] = n match {
+      case 0 => result.reverse
+      case _ =>
+        val (removed, extracted) = P20.removeAt(Random.between(0, curList.length), curList)
+        randomSelectR(n - 1, removed, extracted :: result)
+    }
+
+    randomSelectR(n, list, List())
+  }
+}
+
+object P24 {
+  def lotto(n: Int, until: Int): List[Int] = P23.randomSelect(n, P22.range(1, until))
+}
+
+object P25 {
+  def randomPermute[A](list: List[A]): List[A] = P23.randomSelect(list.length, list)
+}
+
+object P26 {
+  def combinations[A](n: Int, list: List[A]): List[List[A]] = {
+    if (n > list.length || n == 0) return List(List())
+    if (n == list.length) return List(list)
+
+    combinations(n - 1, list.tail).map(list.head :: _) ::: combinations(n, list.tail)
+  }
+}
+
+object P27 {
+  def group[A](nums: List[Int], list: List[A]): List[List[List[A]]] = {
+    if(nums.sum != list.length) throw new InvalidAlgorithmParameterException
+
+    nums match {
+      case Nil => List(List())
+      case h :: tail => P26.combinations(h, list).flatMap(e =>
+        group(tail, list.diff(e)).map(e :: _)
+      )
+    }
+  }
+}
+
+object P28 {
+  def lsort[A](ls: List[List[A]]): List[List[A]] =
+    ls
+      .map(l => (l, l.length))
+      .sortBy(_._2)
+      .map(_._1)
+
+  def lsortFreq[A](ls: List[List[A]]): List[List[A]] =
+    ls
+      .groupBy(_.length)
+      .map(e => (e._2, e._2.length))
+      .toList
+      .sortBy(_._2)
+      .flatMap(_._1)
 }
